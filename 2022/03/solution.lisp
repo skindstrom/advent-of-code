@@ -39,8 +39,7 @@
 
 (defun solution-2 ()
   (reduce #'+
-	  (mapcar #'item-priority
-		  (mapcar (lambda (group)
-			    (apply #'find-shared-item
-				   (mapcar #'compartment-items group)))
-			  (group-rucksacks (parse-file))))))
+	  (mapcar (cl-utilities:compose #'item-priority
+					(lambda (items) (apply #'find-shared-item items))
+		  			(lambda (group) (mapcar #'compartment-items group)))
+			  (group-rucksacks (parse-file)))))
