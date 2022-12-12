@@ -1,4 +1,4 @@
-(defparameter *file* "2022/11/input.txt")
+(defparameter *file* "2022/11/example.txt")
 
 (defstruct monkey
   id
@@ -43,22 +43,41 @@
    :false-monkey (parse-monkey-destination (nth 5 lines))))
 
 (defun parse-file ()
-  (loop for monkey-sequence in 
+  (let ((in (loop for monkey-sequence in 
 			    (cl-utilities:split-sequence-if #'(lambda (line) (= (length line)
 										0))
 							    (uiop:read-file-lines *file*))
 	and monkey-idx from 0
-	collect (parse-monkey monkey-idx monkey-sequence)))
+		  collect (parse-monkey monkey-idx monkey-sequence))))
+    (make-array (length in) :initial-contents in)))
 
 (defun worry-level (monkey item)
-  (floor (/ (funcall (monkey-operation monkey) item)
-	    3)))
+  (funcall (monkey-operation monkey) item))
 
 (defun monkey-destination (monkey item)
   (if (funcall (monkey-test monkey)
 	       (worry-level monkey item))
       (monkey-true-monkey monkey)
       (monkey-false-monkey monkey)))
+
+(defun monkey-toss-opt (monkeys from-id)
+  (let ((item (pop (monkey-items (aref monkeys from-id))) ))
+    (setf (monkey-items (aref monkeys
+			      (monkey-destination (aref monkeys from-id)
+						  item)))
+	  (append (monkey-items (aref monkeys
+			      (monkey-destination (aref monkeys from-id)
+						  item)))
+		  (list (worry-level (aref monkeys from-id) item))))))
+
+(defun monkey-turn-opt (monkeys from-id callback)
+  (loop while (monkey-items (aref monkeys from-id))
+	do (monkey-toss-opt monkeys from-id)
+	   (funcall callback from-id)))
+
+(defun monkey-round-opt (monkeys callback)
+  (loop for id below (length monkeys)
+	do (monkey-turn-opt monkeys id callback)))
 
 (defun monkey-toss (monkeys from-id)
   (let* ((item (car (monkey-items (nth from-id monkeys))))
@@ -85,7 +104,7 @@
   (if (not (monkey-items (nth id monkeys)))
       monkeys
       (let ((monkeys (monkey-toss monkeys id)))
-	(funcall toss-callback monkeys id)
+	(funcall toss-callback id)
 	(monkey-turn monkeys id toss-callback))))
 
 (defun monkey-round (monkeys toss-callback)
@@ -107,7 +126,17 @@
 			   with monkeys = (parse-file)
 			   do (setf monkeys
 				    (monkey-round monkeys
-						  #'(lambda (_ id)
+						  #'(lambda (id)
 						      (setf (aref throw-counts id)
 							    (1+ (aref throw-counts id)))))))
 		     throw-counts)))
+
+(defun solution-2 ()
+  (let ((throw-counts (make-array 10 :initial-element 0)))
+    (loop for i below 1000
+	  with monkeys = (parse-file)
+	  do (monkey-round-opt monkeys
+			       #'(lambda (id)
+				   (setf (aref throw-counts id)
+					 (1+ (aref throw-counts id))))))
+    throw-counts))
