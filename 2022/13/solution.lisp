@@ -42,3 +42,15 @@
 			  (eq result :less))
 		      idx
 		      0))))
+
+(defun solution-2 ()
+  (let* ((packets (reduce #'(lambda (acc pair)
+				(cons (car pair)
+				      (cons (cadr pair)
+					    acc)))
+			    (parse-file)
+			    :initial-value '(((2)) ((6)))))
+	 (sorted (sort packets #'(lambda (a b) (eq (in-order-p a b) :less)))))
+    (*
+     (1+ (position '((2)) sorted :test 'equal))
+     (1+ (position '((6)) sorted :test 'equal)))))
