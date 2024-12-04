@@ -1,21 +1,35 @@
-(defparameter *file* (pathname "input.txt"))
+(defparameter *file*
+  (pathname "input.txt"))
 (defun solution-1 ()
   (count-if #'is-safe-recur (read-reports)))
 
-(defun is-safe-recur (report)
-  (labels ((iter (report direction)
+(defun solution-2 ()
+  (mapcar #'(lambda (report) (is-safe-recur report :allow-skip t)) (read-reports)))
+
+(defun is-safe-recur (report &key (allow-skip nil))
+  (labels ((iter (report direction &key (has-skipped nil))
              (destructuring-bind (a b &rest rest) report
-               (and (case direction
-                      (:up (< (car report) (cadr report)))
-                      (:down (> (car report) (cadr report))))
-                    (<= 1 (abs (- a b)) 3)
-                    (if (null rest)
-                        t
-                        (iter (cons b rest) direction)
-                        )))))
-    (iter report (if (< (car report) (cadr report))
-                     :up
-                     :down))))
+               (or
+                (and (case direction
+                       (:up (< a b))
+                       (:down (> a b)))
+                     (<= 1 (abs (- a b)) 3)
+                     (if (null rest)
+                         t
+                         (iter (cons b rest)
+                               direction
+                               :has-skipped has-skipped)))
+                (and allow-skip
+                     (not has-skipped)
+                     (not (null rest))
+                     (iter (cons a rest)
+                           direction
+                           :has-skipped t))))))
+    (iter report
+          (if (< (car report)
+                 (cadr report))
+              :up
+              :down))))
 
 (defun is-safe (report)
   (and (is-increasing-or-decreasing report)
