@@ -3,6 +3,41 @@
 (defun solution-1 ()
   (xmas-finder (parse-file)))
 
+(defun solution-2 ()
+  (length (x-mas-finder (parse-file))))
+
+(defun x-mas-finder (arr)
+  (let ((indices))
+    (dotimes (row (- (array-dimension arr 0)
+                     2))
+      (dotimes (col (- (array-dimension arr 1)
+                       2))
+        (when (x-mas-p arr (1+ row) (1+ col))
+          (push (list (1+ row) (1+ col)) indices))))
+    indices))
+
+(defun x-mas-p (arr row col)
+  (flet ((next-letter (curr)
+           (cond ((char= #\S curr) #\M)
+                 ((char= #\M curr) #\S))))
+    (and (char= #\A (aref arr row col))
+         (let ((next (next-letter
+                                        ; top left
+                      (aref arr (1- row) (1- col)))))
+           (when next
+             (char= next
+                                        ; bottom-right
+                    (aref arr (1+ row) (1+ col)))
+             ))
+         (let ((next (next-letter
+                                        ; top left
+                      (aref arr (1+ row) (1- col)))))
+           (when next
+             (char= next
+                                        ; top-right
+                    (aref arr (1- row) (1+ col)))
+             )))))
+
 (defun xmas-finder (arr)
   "Go through each index in the array. For every X, search in each direction. If XMAS can be completed, count that index once"
   (let ((sum 0))
