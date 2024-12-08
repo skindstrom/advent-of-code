@@ -6,15 +6,23 @@
 They appear when one antenna is twice as far away as the other, in a perfect line"
   (destructuring-bind (map antennas) (parse-file)
     (length (remove-duplicates
+             (mapcan (curry #'antinodes map) antennas)
+             :test #'equal))))
+
+(defun solution-2 ()
+  (destructuring-bind (map antennas) (parse-file)
+    (length (remove-duplicates
              (remove-if-not (curry #'valid-pos-p map)
-                            (mapcan #'antinodes antennas))
+                            (mapcan (lambda (antenna)
+                                      (antinodes map antenna :resonant-harmonics t))
+                                    antennas))
              :test #'equal))))
 
 (defun valid-pos-p (map pos)
   (and (< -1 (y pos) (array-dimension map 0))
        (< -1 (x pos) (array-dimension map 1))))
 
-(defun antinodes (antenna)
+(defun antinodes (map antenna &key (resonant-harmonics nil))
   "Retruns all antinodes for a given antenna, regardless if it's within bounds"
   (labels ((iter (antinodes curr rest)
              (if (null rest)
@@ -22,13 +30,24 @@ They appear when one antenna is twice as far away as the other, in a perfect lin
                  (iter (append antinodes
                                (mapcan (lambda (pos)
                                          (let ((diff (pos- curr pos)))
-                                           (list (pos+ curr diff)
-                                                 (pos- pos diff))))
+                                           (if resonant-harmonics
+                                               (append (harmonics nil curr diff #'pos+)
+                                                       (harmonics nil pos diff #'pos-))
+                                               (list (pos+ curr diff)
+                                                     (pos- pos diff)))))
                                        rest))
                        (car rest)
-                       (cdr rest)))))
+                       (cdr rest))))
+           (harmonics (antinodes curr diff fn)
+             (if (not (valid-pos-p map curr))
+                 antinodes
+                 (harmonics (cons curr antinodes)
+                            (funcall fn curr diff)
+                            diff
+                            fn))))
     (let ((positions (antenna-positions antenna)))
-      (iter nil (car positions) (cdr positions)))))
+      (remove-if-not (curry #'valid-pos-p map)
+                     (iter nil (car positions) (cdr positions))))))
 
 (defun pos+ (a b)
   (list (+ (y a)
