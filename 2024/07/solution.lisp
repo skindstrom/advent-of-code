@@ -9,7 +9,15 @@
           (parse-file)
           :initial-value 0))
 
-(defun valid-calibration-p (calibration)
+(defun solution-2 ()
+  (reduce (lambda (sum calibration)
+            (if (valid-calibration-p calibration :allow-concat t)
+                (+ sum (result calibration))
+                sum))
+          (parse-file)
+          :initial-value 0))
+
+(defun valid-calibration-p (calibration &key (allow-concat nil))
   "Returns t if the calibration is valid, nil otherwise"
   (labels ((iter (curr parameters)
              (if (null parameters)
@@ -19,7 +27,10 @@
                            (cdr parameters))
                      (iter (* curr
                               (car parameters))
-                           (cdr parameters))))))
+                           (cdr parameters))
+                     (and allow-concat
+                          (iter (parse-integer (format nil "~a~a" curr (car parameters)))
+                                (cdr parameters)))))))
     (let ((parameters (parameters calibration)))
       (iter (car parameters)
             (cdr parameters)))))
